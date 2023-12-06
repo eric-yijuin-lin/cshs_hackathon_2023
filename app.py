@@ -16,21 +16,25 @@ from linebot.v3.webhooks import (
     MessageEvent,
     TextMessageContent,
 )
-import json
-
-def read_config(file_path: str) -> dict:
-    try:
-        with open(file_path, 'r', encoding='utf-8') as fs:
-            return json.load(fs) # channelSecret & accessToken
-    except FileNotFoundError:
-        print('failed to load credential')
-        quit("the LINE bot API is terminated")
+import utilities
+from health_data_manager import HealthDataManager
 
 app = Flask(__name__)
-line_credential = read_config('./line-api-credential.json')
+line_credential = utilities.read_config('./line-api-credential.json')
 configuration = Configuration(access_token = line_credential['accessToken'])
 handler = WebhookHandler(line_credential['channelSecret'])
+datamanager = HealthDataManager("./health-data-config.json")
 
+# 127.0.0.1:9002/health-data?uid=abcdefg&hb=120&bo=98&bt=37.5
+@app.route("/health-data", methods=["GET"])
+def handle_health_data():
+    user_id = request.args.get("uid")
+    heart_beat = request.args.get("hb")
+    blood_oxygen = request.args.get("bo")
+    body_temperature = request.args.get("bt")
+    user_name = datamanager.get_user_name(user_id)
+    datamanager.append_health_row([user_name, heart_beat, blood_oxygen, body_temperature])
+    return 'OK'
 
 @app.route("/callback", methods=['POST'])
 def callback():
