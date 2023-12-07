@@ -18,12 +18,14 @@ from linebot.v3.webhooks import (
 )
 import utilities
 from health_data_manager import HealthDataManager
+from chatgpt import ChatGPT
 
 app = Flask(__name__)
-line_credential = utilities.read_config('./line-api-credential.json')
+line_credential = utilities.read_config('./configs/line-api-credential.json')
 configuration = Configuration(access_token = line_credential['accessToken'])
 handler = WebhookHandler(line_credential['channelSecret'])
-datamanager = HealthDataManager("./health-data-config.json")
+datamanager = HealthDataManager("./configs./health-data-config.json")
+chatgpt = ChatGPT("./configs/chatgpt-credential.json")
 
 # 127.0.0.1:9002/health-data?uid=abcdefg&hb=120&bo=98&bt=37.5
 @app.route("/health-data", methods=["GET"])
@@ -62,10 +64,14 @@ def handle_text_message(event):
         message = event.message.text
         reply_message = ""
 
-        if message == "笑話":
-            reply_message = "隨機挑選一則笑話"
-        elif message == "閒聊":
-            reply_message = "串接 ChatGPT API"
+        if message == "心跳":
+            reply_message = f"最後一次測量心跳"
+        elif message == "血氧":
+            reply_message = f"最後一次測量血氧"
+        elif message == "體溫":
+            reply_message = f"最後一次測量體溫"
+        else:
+            reply_message = chatgpt.chat(message)
 
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
@@ -73,7 +79,6 @@ def handle_text_message(event):
                 messages=[TextMessage(text=reply_message)]
             )
         )
-
 
 if __name__ == "__main__":
     app.run(port=9002)
