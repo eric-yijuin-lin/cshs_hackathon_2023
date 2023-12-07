@@ -1,5 +1,5 @@
 {
-    "sheetCredentialPath": "./sheet-api-credential.json",
+    "sheetCredentialPath": "./configs./sheet-api-credential.json",
     "workBookName": "黑客松2023資料庫",
     "sheetTabName": "健康讀數"
 }
