@@ -1,5 +1,5 @@
-import utilities
 from openai import OpenAI
+import utilities
 
 class ChatGPT:
     def __init__(self, config_file: str) -> None:
@@ -15,16 +15,13 @@ class ChatGPT:
                 messages=[
                     {"role": "user", "content": message},
                     {"role": "system", "content": "reply in either Traditional Chinese or English"}
-                    ],
+                ],
                 temperature = self.config["temperature"],
                 stream=True,
             )
             reply = "".join([chunk.choices[0].delta.content
-                             for chunk in stream 
+                             for chunk in stream
                              if chunk.choices[0].delta.content is not None])
-            # for chunk in stream:
-            #     if chunk.choices[0].delta.content is not None:
-            #         reply += chunk.choices[0].delta.content
         except Exception as ex:
             reply = f"ChatGPT 發生錯誤\n({ex})"
         return reply

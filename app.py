@@ -10,10 +10,12 @@ from linebot.v3.messaging import (
     ApiClient,
     MessagingApi,
     ReplyMessageRequest,
+    PushMessageRequest,
     TextMessage
 )
 from linebot.v3.webhooks import (
     MessageEvent,
+    FollowEvent,
     TextMessageContent,
 )
 import utilities
@@ -24,18 +26,24 @@ app = Flask(__name__)
 line_credential = utilities.read_config('./configs/line-api-credential.json')
 configuration = Configuration(access_token = line_credential['accessToken'])
 handler = WebhookHandler(line_credential['channelSecret'])
-datamanager = HealthDataManager("./configs./health-data-config.json")
+health_manager = HealthDataManager("./configs./health-data-config.json")
 chatgpt = ChatGPT("./configs/chatgpt-credential.json")
 
 # 127.0.0.1:9002/health-data?uid=abcdefg&hb=120&bo=98&bt=37.5
 @app.route("/health-data", methods=["GET"])
 def handle_health_data():
-    user_id = request.args.get("uid")
-    heart_beat = request.args.get("hb")
-    blood_oxygen = request.args.get("bo")
-    body_temperature = request.args.get("bt")
-    user_name = datamanager.get_user_name(user_id)
-    datamanager.append_health_row([user_name, heart_beat, blood_oxygen, body_temperature])
+    vital_signs = health_manager.get_vital_signs(request.args)
+    health_judge = health_manager.get_health_judge(vital_signs)
+    if health_judge:
+        user_id = vital_signs[0]
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.push_message(
+                PushMessageRequest(
+                    to=user_id,
+                    messages=[TextMessage(text=health_judge)]
+                )
+            )
     return 'OK'
 
 @app.route("/callback", methods=['POST'])
@@ -79,6 +87,10 @@ def handle_text_message(event):
                 messages=[TextMessage(text=reply_message)]
             )
         )
+
+@handler.add(FollowEvent)
+def handle_follow(event):
+    print("handling follow event")
 
 if __name__ == "__main__":
     app.run(port=9002)
