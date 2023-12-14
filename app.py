@@ -32,10 +32,13 @@ chatgpt = ChatGPT("./configs/chatgpt-credential.json")
 # 127.0.0.1:9002/health-data?uid=abcdefg&hb=120&bo=98&bt=37.5
 @app.route("/health-data", methods=["GET"])
 def handle_health_data():
-    vital_signs = health_manager.get_vital_signs(request.args)
+    vital_signs = health_manager.request_to_vital_signs(request.args)
+    health_manager.insert_vital_signs(vital_signs)
     health_judge = health_manager.get_health_judge(vital_signs)
     if health_judge:
         user_id = vital_signs[0]
+        if user_id == "debug-user":
+            user_id = line_credential["debugUid"]
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.push_message(
@@ -78,6 +81,9 @@ def handle_text_message(event):
             reply_message = f"最後一次測量血氧"
         elif message == "體溫":
             reply_message = f"最後一次測量體溫"
+        elif message == "debug":
+            row = health_manager.get_vital_sign(user_id)
+            reply_message = str(row)
         else:
             reply_message = chatgpt.chat(message)
 

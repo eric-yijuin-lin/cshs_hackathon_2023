@@ -1,3 +1,4 @@
+import time
 import gspread
 import utilities
 
@@ -16,7 +17,7 @@ class HealthDataManager:
         self.user_sheet = work_book.worksheet(self.config["userTab"])
         self.users = self.user_sheet.get_all_records()
 
-    def get_vital_signs(self, request_args) -> list:
+    def request_to_vital_signs(self, request_args) -> list:
         # [user_name, heart_beat, blood_oxygen, body_temperature]
         user_id = request_args.get("uid")
         heart_beat = float(request_args.get("hb"))
@@ -25,11 +26,10 @@ class HealthDataManager:
         user_name = self.get_user_name(user_id)
         return [user_name, heart_beat,blood_oxygen, body_temperature]
 
-    def append_vital_signs(self, vital_signs: list) -> None:
-        try:
-            self.worksheet.append_row(vital_signs)
-        except Exception as ex:
-            print("failed to append health data: ", ex)
+    def insert_vital_signs(self, vital_signs: list) -> None:
+        sign_datetime = time.time()
+        vital_signs.append(sign_datetime)
+        self.vital_sign_sheet.insert_row(vital_signs, 2)
 
     def get_health_judge(self, vital_signs: list) -> str:
         judge = ""
@@ -47,7 +47,7 @@ class HealthDataManager:
         if self.user_exists(user_id):
             return
         try:   
-            self.user_sheet.append_row([user_id, user_name])
+            self.user_sheet.insert_row([user_id, user_name])
             self.users = self.user_sheet.get_all_records()
         except:
             raise Exception("無法新增使用者")
@@ -63,3 +63,8 @@ class HealthDataManager:
             if user["ID"] == user_id:
                 return user["暱稱"]
         return "debug-user"
+
+    def get_vital_sign(self, user_id: str) -> float:
+        cell = self.user_sheet.find(user_id)
+        vital_signs = self.vital_sign_sheet.row_values(cell.row)
+        return vital_signs
