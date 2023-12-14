@@ -90,7 +90,11 @@ def handle_text_message(event):
 
 @handler.add(FollowEvent)
 def handle_follow(event):
-    print("handling follow event")
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        user_id = event.source.user_id
+        profile = line_bot_api.get_profile(user_id)
+        health_manager.create_user(event.source.user_id, profile.display_name)
 
 if __name__ == "__main__":
     app.run(port=9002)
