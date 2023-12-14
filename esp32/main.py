@@ -2,7 +2,15 @@ import machine, onewire, ds18x20, time
 import sh1106
 import network
 import urequests as requests
-from machine import Pin, I2C
+from machine import Pin, ADC, I2C
+
+# 設定可變電阻腳位
+hear_beat = ADC(Pin(34))
+blood_oxygen = ADC(Pin(35))
+body_temperature = ADC(Pin(36))
+hear_beat.atten(ADC.ATTN_11DB) 
+blood_oxygen.atten(ADC.ATTN_11DB) 
+body_temperature.atten(ADC.ATTN_11DB) 
 
 # 設定 OLED 顯示器
 i2c = I2C(scl=Pin(22), sda=Pin(21), freq=400000)
@@ -14,11 +22,11 @@ display.show()
 
 # 設定 ThingSpeak 網址、金鑰
 url = "http://api.thingspeak.com/update"
-api_key = "你的金鑰"
+api_key = ""
 
 # 設定 wifi SSID 名稱、wifi 密碼與伺服器網址
-WIFI_SSID = '你的手機熱點'
-WIFI_PASSWORD = '你的熱點密碼'
+WIFI_SSID = ''
+WIFI_PASSWORD = ''
 
 # 建立 wifi 連線
 wifi = network.WLAN(network.STA_IF)
@@ -54,6 +62,11 @@ while True:
     tempture = ds_sensor.read_temp(rom)
     current_time = time.time() - start_time
     print(f"{current_time} sec\n  {tempture}")
+    
+    hb = hear_beat.read() / 3200 * 80
+    bo = blood_oxygen.read() / 3000 * 117
+    bt = body_temperature.read() / 2300 * 38
+    print(f"beat: {hb},    oxygen: {bo},    temperature: {bt}")
     
     display.fill(0)
     display.text(str(current_time) + " sec", 5, 5, 1)
