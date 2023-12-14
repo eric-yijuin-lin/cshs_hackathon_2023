@@ -64,7 +64,14 @@ class HealthDataManager:
                 return user["暱稱"]
         return "debug-user"
 
-    def get_vital_sign(self, user_id: str) -> float:
+    def get_vital_sign(self, user_id: str, sign_type: str) -> float:
         cell = self.user_sheet.find(user_id)
         vital_signs = self.vital_sign_sheet.row_values(cell.row)
-        return vital_signs
+        if sign_type == "心跳":
+            return vital_signs[1]
+        elif sign_type == "血氧":
+            return vital_signs[2]
+        elif sign_type == "體溫":
+            return vital_signs[3]
+        else:
+            return vital_signs

@@ -14,7 +14,7 @@ class ChatGPT:
                 model=self.config["model"],
                 messages=[
                     {"role": "user", "content": message},
-                    {"role": "system", "content": "reply in either Traditional Chinese or English"}
+                    {"role": "system", "content": "中文的部分必須使用繁體中文"}
                 ],
                 temperature = self.config["temperature"],
                 stream=True,
