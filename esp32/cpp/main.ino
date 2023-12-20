@@ -1,12 +1,19 @@
-//https://youtu.be/ghTtpUTSc4o
-//安裝程式庫及版本:1.Adafruit SSD1306(2.4.6版)、2.Adafruit GFX(1.10.12版)、3.MAX30105(不限)、4.ESP32Servo(不限版本)
-//特別注意，檢查Adafruit BusIO的版本是否為1.7.5版本，否則編譯會出錯
+// 參考網址：
+// 心跳血氧：https://www.nmking.io/index.php/2023/03/26/1071/
+// 溫度：https://randomnerdtutorials.com/esp32-ds18b20-temperature-arduino-ide/
+// 多執行緒：https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
+// HTTPS：https://randomnerdtutorials.com/esp32-https-requests/
 
 #include "MAX30105.h"           //MAX3010x library
 #include "heartRate.h"          //Heart rate calculating algorithm
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+#define FINGER_ON 7000    //紅外線最小量（判斷手指有沒有上）
+#define MINIMUM_SPO2 90.0 //血氧最小量
 
 MAX30105 particleSensor;
 //計算心跳用變數
@@ -30,17 +37,10 @@ double frate = 0.95; //low pass filter for IR/red LED value to eliminate AC comp
 int i = 0;
 int Num = 30;//取樣30次才計算1次
 
-
-#include <OneWire.h>
-#include <DallasTemperature.h>
-
-#define FINGER_ON 7000    //紅外線最小量（判斷手指有沒有上）
-#define MINIMUM_SPO2 90.0 //血氧最小量
-
 const char* ssid = "iPhone-YJL"; //輸入wifi ssid
 const char* password = "12345678"; //輸入wifi 密碼WiFi.begin(ssid, password);
-const char* userId = "debug-user";
-const char* serverUrl = " http://172.20.10.9:9002/health-data";
+const char* serverUrl = "https://goattl.tw/cshs/hackathon/health-data";
+char* userId = "debug-user";
 
 const int oneWireBus = 17;     
 OneWire oneWire(oneWireBus);
@@ -53,10 +53,6 @@ TaskHandle_t temperatureTask;
 void setup() {
   Serial.begin(115200);
   connectWifi();
-  while(1) {
-    testHttp();
-    delay(30000);
-  }
   initHeartSignSensor();
   initTemperatureSensor();
 }
@@ -82,7 +78,6 @@ void testHttp() {
 }
 
 void initHeartSignSensor() {
-  //檢查
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
   {
     while(1) {
@@ -195,8 +190,6 @@ void measureTemperature(void * pvParameters) {
   while (1) {
     tempSensor.requestTemperatures(); 
     temperatureC = tempSensor.getTempCByIndex(0);
-    Serial.print(temperatureC);
-    Serial.println("ºC");
     delay(5000);
   }
 }
@@ -205,21 +198,20 @@ void sendVitalSigns(char* userId, int heartBeat, double bloodOxygen, float tempe
   WiFiClientSecure *client = new WiFiClientSecure;
   if(client) {
     client->setInsecure();
+    String query = getQueryString(userId, heartBeat, bloodOxygen, temperatureC);
     HTTPClient https;
-
-    Serial.println("[HTTPS] begin...");
-    if (https.begin(*client, "https://goattl.tw/cshs/line_bot/hello")) {  // HTTPS
-      Serial.print("[HTTPS] GET...\n");
+    Serial.println("[GET] " + query);
+    if (https.begin(*client, query)) {
       int httpCode = https.GET();
       if (httpCode > 0) {
-       Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+       Serial.printf("[STATUS CODE] %d\n", httpCode);
         if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
           String payload = https.getString();
-          Serial.println(payload);
+          Serial.printf("[RESPONSE] %s\n", payload);
         }
       }
       else {
-        Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+        Serial.printf("[ERROR]: %s\n", https.errorToString(httpCode).c_str());
       }
       https.end();
     }
@@ -228,7 +220,6 @@ void sendVitalSigns(char* userId, int heartBeat, double bloodOxygen, float tempe
     Serial.printf("[HTTPS] Unable to connect\n");
   }
   Serial.println();
-  Serial.println("Waiting 2min before the next round...");
   delay(10000);
 }
 
@@ -241,11 +232,12 @@ String getQueryString(char* userId, int heartBeat, double bloodOxygen, float tem
 }
 
 void loop() {
-    //將數據顯示到序列
-    Serial.print("Bpm:" + String(beatAvg));
-    Serial.println(",SPO2:" + String(ESpO2));
-    Serial.print(temperatureC);
-    Serial.println("ºC");
-    delay(1000);
+  //將數據顯示到序列
+  Serial.print("Bpm: " + String(beatAvg));
+  Serial.print(", SPO2: " + String(ESpO2));
+  Serial.print(", Temp:" + String(temperatureC));
+  Serial.println("ºC");
+  sendVitalSigns(userId, beatAvg, ESpO2, temperatureC);
+  delay(5000);
 }
 
