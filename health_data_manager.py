@@ -42,16 +42,16 @@ class HealthDataManager:
         if judge:
             judge = "偵測到健康狀況異常：" + judge
         return judge
-    
+
     def create_user(self, user_id: str, user_name: str) -> None:
         if self.user_exists(user_id):
             return
-        try:   
-            self.user_sheet.insert_row([user_id, user_name])
+        try:
+            self.user_sheet.insert_row([user_id, user_name], 2)
             self.users = self.user_sheet.get_all_records()
         except:
             raise Exception("無法新增使用者")
-    
+
     def user_exists(self, user_id: str) -> bool:
         for user in self.users:
             if user["ID"] == user_id:
