@@ -1,11 +1,12 @@
-// 參考網址：
-// 心跳血氧：https://www.nmking.io/index.php/2023/03/26/1071/
-// 溫度：https://randomnerdtutorials.com/esp32-ds18b20-temperature-arduino-ide/
-// 多執行緒：https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
+//https://youtu.be/ghTtpUTSc4o
+//安裝程式庫及版本:1.Adafruit SSD1306(2.4.6版)、2.Adafruit GFX(1.10.12版)、3.MAX30105(不限)、4.ESP32Servo(不限版本)
+//特別注意，檢查Adafruit BusIO的版本是否為1.7.5版本，否則編譯會出錯
 
 #include "MAX30105.h"           //MAX3010x library
 #include "heartRate.h"          //Heart rate calculating algorithm
-#include "ESP32Servo.h"
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 MAX30105 particleSensor;
 //計算心跳用變數
@@ -36,6 +37,11 @@ int Num = 30;//取樣30次才計算1次
 #define FINGER_ON 7000    //紅外線最小量（判斷手指有沒有上）
 #define MINIMUM_SPO2 90.0 //血氧最小量
 
+const char* ssid = "iPhone-YJL"; //輸入wifi ssid
+const char* password = "12345678"; //輸入wifi 密碼WiFi.begin(ssid, password);
+const char* userId = "debug-user";
+const char* serverUrl = " http://172.20.10.9:9002/health-data";
+
 const int oneWireBus = 17;     
 OneWire oneWire(oneWireBus);
 DallasTemperature tempSensor(&oneWire);
@@ -46,16 +52,60 @@ TaskHandle_t temperatureTask;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("System Start");
-  delay(3000);
-  
-  tempSensor.begin();
+  connectWifi();
+  while(1) {
+    testHttp();
+    delay(30000);
+  }
+  initHeartSignSensor();
+  initTemperatureSensor();
+}
+
+void connectWifi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.print("STAIP address: ");
+  Serial.println(WiFi.localIP());  
+}
+
+void testHttp() {
+  sendVitalSigns("debug-user", 80, 99.6, 35.7);
+}
+
+void initHeartSignSensor() {
   //檢查
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
   {
-    Serial.println("找不到MAX30102");
+    while(1) {
+      Serial.println("找不到MAX30102");
+      delay(1000);
+    }
   }
 
+  // 設定心跳、血氧測量參數
+  byte ledBrightness = 0x7F; //亮度建議=127, Options: 0=Off to 255=50mA
+  byte sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
+  byte ledMode = 2; //Options: 1 = Red only(心跳), 2 = Red + IR(血氧)
+  int sampleRate = 800; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
+  int pulseWidth = 215; //Options: 69, 118, 215, 411
+  int adcRange = 16384; //Options: 2048, 4096, 8192, 16384
+
+  // Set up the wanted parameters
+  particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); //Configure sensor with these settings
+  particleSensor.enableDIETEMPRDY();
+  particleSensor.setPulseAmplitudeRed(0x0A); //Turn Red LED to low to indicate sensor is running
+  particleSensor.setPulseAmplitudeGreen(0); //Turn off Green LED
+  
+  // 建立心跳、血氧測量執行緒
   xTaskCreatePinnedToCore(
                     measureHeartSign,   /* Task function. */
                     "measureHeart",     /* name of task. */
@@ -65,6 +115,10 @@ void setup() {
                     &heartSignTask,      /* Task handle to keep track of created task */
                     0);          /* pin task to core 0 */                  
   delay(500); 
+}
+
+void initTemperatureSensor() {
+  tempSensor.begin();
   xTaskCreatePinnedToCore(
                     measureTemperature,   /* Task function. */
                     "measureTemp",     /* name of task. */
@@ -74,20 +128,6 @@ void setup() {
                     &temperatureTask,      /* Task handle to keep track of created task */
                     0);          /* pin task to core 0 */                  
   delay(500); 
-
-  //以下選項可自行調整
-  byte ledBrightness = 0x7F; //亮度建議=127, Options: 0=Off to 255=50mA
-  byte sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
-  byte ledMode = 2; //Options: 1 = Red only(心跳), 2 = Red + IR(血氧)
-  int sampleRate = 800; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
-  int pulseWidth = 215; //Options: 69, 118, 215, 411
-  int adcRange = 16384; //Options: 2048, 4096, 8192, 16384
-  // Set up the wanted parameters
-  particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); //Configure sensor with these settings
-  particleSensor.enableDIETEMPRDY();
-
-  particleSensor.setPulseAmplitudeRed(0x0A); //Turn Red LED to low to indicate sensor is running
-  particleSensor.setPulseAmplitudeGreen(0); //Turn off Green LED
 }
 
 void measureHeartSign(void * pvParameters ) {
@@ -159,6 +199,45 @@ void measureTemperature(void * pvParameters) {
     Serial.println("ºC");
     delay(5000);
   }
+}
+
+void sendVitalSigns(char* userId, int heartBeat, double bloodOxygen, float temperatureC) {
+  WiFiClientSecure *client = new WiFiClientSecure;
+  if(client) {
+    client->setInsecure();
+    HTTPClient https;
+
+    Serial.println("[HTTPS] begin...");
+    if (https.begin(*client, "https://goattl.tw/cshs/line_bot/hello")) {  // HTTPS
+      Serial.print("[HTTPS] GET...\n");
+      int httpCode = https.GET();
+      if (httpCode > 0) {
+       Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+          String payload = https.getString();
+          Serial.println(payload);
+        }
+      }
+      else {
+        Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+      }
+      https.end();
+    }
+  }
+  else {
+    Serial.printf("[HTTPS] Unable to connect\n");
+  }
+  Serial.println();
+  Serial.println("Waiting 2min before the next round...");
+  delay(10000);
+}
+
+String getQueryString(char* userId, int heartBeat, double bloodOxygen, float temperatureC) {
+  return String(serverUrl) 
+    + "?uid=" + String(userId)
+    + "&hb=" + String(heartBeat)
+    + "&bo=" + String(bloodOxygen)
+    + "&bt=" + String(temperatureC);
 }
 
 void loop() {
