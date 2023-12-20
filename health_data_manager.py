@@ -1,4 +1,6 @@
 import time
+from datetime import datetime
+
 import gspread
 import utilities
 
@@ -27,18 +29,19 @@ class HealthDataManager:
         return [user_name, heart_beat,blood_oxygen, body_temperature]
 
     def insert_vital_signs(self, vital_signs: list) -> None:
-        sign_datetime = time.time()
-        vital_signs.append(sign_datetime)
+        timestamp = time.time()
+        str_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        vital_signs.extend([timestamp, str_datetime])
         self.vital_sign_sheet.insert_row(vital_signs, 2)
 
     def get_health_judge(self, vital_signs: list) -> str:
         judge = ""
-        if vital_signs[1] > 120 or vital_signs[1] < 80:
+        if vital_signs[1] > 120 or vital_signs[1] < 60:
             judge += f"\n每秒心跳{vital_signs[1]}下"
         if vital_signs[2] > 110 or vital_signs[2] < 90:
-            judge += f"\n血氧濃度{vital_signs[1]}%"
+            judge += f"\n血氧濃度{vital_signs[2]}%"
         if vital_signs[3] > 38 or vital_signs[3] < 35:
-            judge += f"\n體溫攝氏{vital_signs[1]}度"
+            judge += f"\n體溫攝氏{vital_signs[3]}度"
         if judge:
             judge = "偵測到健康狀況異常：" + judge
         return judge
