@@ -35,6 +35,10 @@ class HealthDataManager:
         self.vital_sign_sheet.insert_row(vital_signs, 2)
 
     def get_health_judge(self, vital_signs: list) -> str:
+        # vital_signs[1] == 心跳    vital_signs[2] == 血氧    vital_signs[3] == 體溫
+        if vital_signs[1] <= 0 or vital_signs[2] <= 0 or vital_signs[3] <= 0:
+            return "" # 任一數據小於等於零代表無效數據，不做健康異常的警報
+
         judge = ""
         if vital_signs[1] > 120 or vital_signs[1] < 60:
             judge += f"\n每秒心跳{vital_signs[1]}下"
