@@ -26,10 +26,11 @@ app = Flask(__name__)
 line_credential = utilities.read_config('./configs/line-api-credential.json')
 configuration = Configuration(access_token = line_credential['accessToken'])
 handler = WebhookHandler(line_credential['channelSecret'])
-health_manager = HealthDataManager("./configs./health-data-config.json")
+health_manager = HealthDataManager("./configs/health-data-config.json")
 chatgpt = ChatGPT("./configs/chatgpt-credential.json")
 
-# 127.0.0.1:9002/health-data?uid=abcdefg&hb=120&bo=98&bt=37.5
+# https://goattl.tw/cshs/hackathon/health-data?uid=debug-user&hb=120&bo=99&bt=37.5
+# 127.0.0.1:9002/health-data?uid=debug-user&hb=120&bo=98&bt=37.5
 @app.route("/health-data", methods=["GET"])
 def handle_health_data():
     vital_signs = health_manager.request_to_vital_signs(request.args)
