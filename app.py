@@ -33,7 +33,7 @@ chatgpt = ChatGPT("./configs/chatgpt-credential.json")
 # 127.0.0.1:9002/health-data?uid=debug-user&hb=120&bo=98&bt=37.5
 @app.route("/health-data", methods=["GET"])
 def handle_health_data():
-    vital_signs = health_manager.request_to_vital_signs(request.args)
+    vital_signs = health_manager.vital_signs_from_request(request.args)
     health_manager.insert_vital_signs(vital_signs)
     health_judge = health_manager.get_health_judge(vital_signs)
     if health_judge:

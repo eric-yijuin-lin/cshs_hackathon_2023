@@ -2,5 +2,6 @@
     "sheetCredentialPath": "./configs/sheet-api-credential.json",
     "workBook": "黑客松2023資料庫",
     "vitalSignTab": "健康讀數",
-    "userTab": "使用者"
+    "userTab": "使用者",
+    "hospitalTab": "醫療機構"
 }

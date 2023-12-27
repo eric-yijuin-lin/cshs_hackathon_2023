@@ -7,6 +7,7 @@ import utilities
 class HealthDataManager:
     def __init__(self, config_file: str) -> None:
         self.users = []
+        self.hospitals = []
         self.config = utilities.read_config(config_file)
         self.init_work_sheets()
 
@@ -17,9 +18,12 @@ class HealthDataManager:
         work_book = service_account.open(book_title)
         self.vital_sign_sheet = work_book.worksheet(self.config["vitalSignTab"])
         self.user_sheet = work_book.worksheet(self.config["userTab"])
+        self.hospitals_sheet = work_book.worksheet(self.config["hospitalTab"])
         self.users = self.user_sheet.get_all_records()
+        self.hospitals = self.hospitals_sheet.get_all_records()
+        print(self.hospitals)
 
-    def request_to_vital_signs(self, request_args) -> list:
+    def vital_signs_from_request(self, request_args) -> list:
         # [user_name, heart_beat, blood_oxygen, body_temperature]
         user_id = request_args.get("uid")
         heart_beat = float(request_args.get("hb"))
