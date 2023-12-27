@@ -81,14 +81,14 @@ def handle_text_message(event):
         reply_message = ""
 
         if message == "心跳":
-            value = health_manager.get_vital_sign(user_id, message)
+            value = health_manager.get_vital_sign(user_id, "心跳")
             reply_message = f"最後一次測量心跳: {value}"
         elif message == "血氧":
-            value = health_manager.get_vital_sign(user_id, message)
-            reply_message = f"最後一次測量心跳: {value}"
+            value = health_manager.get_vital_sign(user_id, "血氧")
+            reply_message = f"最後一次測量血氧: {value}"
         elif message == "體溫":
-            value = health_manager.get_vital_sign(user_id, message)
-            reply_message = f"最後一次測量心跳: {value}"
+            value = health_manager.get_vital_sign(user_id, "體溫")
+            reply_message = f"最後一次測量體溫: {value}"
         elif message == "debug":
             row = health_manager.get_vital_sign(user_id, "all")
             reply_message = str(row)
