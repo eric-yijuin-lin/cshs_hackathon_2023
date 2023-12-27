@@ -38,14 +38,18 @@ def handle_health_data():
     health_judge = health_manager.get_health_judge(vital_signs)
     if health_judge:
         user_id = vital_signs[0]
-        if user_id == "debug-user":
+        if user_id == "debug-user": # 如果 user id 設定為 debug-user，就用測試ID覆蓋掉原本的ID
             user_id = line_credential["debugUid"]
+        user = health_manager.get_user_info(user_id)
+        hospital = health_manager.get_nearest_hospital(user_id)
+        message = health_manager.get_emergency_message(health_judge, user, hospital)
+
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.push_message(
                 PushMessageRequest(
                     to=user_id,
-                    messages=[TextMessage(text=health_judge)]
+                    messages=[TextMessage(text=message)]
                 )
             )
     return 'OK'

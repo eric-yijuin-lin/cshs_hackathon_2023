@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+from math import sqrt
 
 import gspread
 import utilities
@@ -50,8 +51,6 @@ class HealthDataManager:
             judge += f"\n血氧濃度{vital_signs[2]}%"
         if vital_signs[3] > 38 or vital_signs[3] < 35:
             judge += f"\n體溫攝氏{vital_signs[3]}度"
-        if judge:
-            judge = "偵測到健康狀況異常：" + judge
         return judge
 
     def create_user(self, user_id: str, user_name: str) -> None:
@@ -86,3 +85,34 @@ class HealthDataManager:
             return vital_signs[3]
         else:
             return vital_signs
+        
+    def get_nearest_hospital(self, user_id) -> dict:
+        user = self.get_user_info(user_id)
+        nearest_hospital = None
+        min_distance = 99999
+        for h in self.hospitals:
+            next_distance = self.get_hospital_distance(user, h)
+            if next_distance < min_distance:
+                min_distance = next_distance
+                nearest_hospital = h
+        return nearest_hospital
+    
+    def get_user_info(self, user_id) -> dict:
+        for user in self.users:
+            if user["ID"] == user_id:
+                return user
+        
+    def get_hospital_distance(self, user: dict, hospital: dict) -> float:
+        latitude_h = hospital["緯度"]
+        longitude_h = hospital["經度"]
+        latitude_u = user["緯度"]
+        longitude_u = user["經度"]
+        d1 = (latitude_h - latitude_u) * (latitude_h - latitude_u) # 緯度差平方
+        d2 = (longitude_h - longitude_u) * (longitude_h - longitude_u) # 經度差平方
+        return sqrt(d1 + d2) # 平方根 == 距離
+
+    def get_emergency_message(self, health_judge: str, user: dict, hospital: dict) -> str:
+        user_name = user["暱稱"]
+        user_address = user["住址"]
+        hospital_name = hospital["機構名稱"]
+        return f"{user_name} 的健康數據異常：\n{health_judge}\n\n建議送往{hospital_name}，患者住址為：{user_address}"
