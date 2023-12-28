@@ -30,8 +30,8 @@ class HealthDataManager:
         heart_beat = float(request_args.get("hb"))
         blood_oxygen = float(request_args.get("bo"))
         body_temperature = float(request_args.get("bt"))
-        user_name = self.get_user_name(user_id)
-        return [user_name, heart_beat,blood_oxygen, body_temperature]
+        # user_name = self.get_user_name(user_id)
+        return [user_id, heart_beat,blood_oxygen, body_temperature]
 
     def insert_vital_signs(self, vital_signs: list) -> None:
         timestamp = time.time()
