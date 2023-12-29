@@ -110,5 +110,13 @@ def handle_follow(event):
         profile = line_bot_api.get_profile(user_id)
         health_manager.create_user(event.source.user_id, profile.display_name)
 
+        message = f"{profile.display_name} 您好，歡迎使用銀髮宜居幸福南投伴護系統，輸入「心跳」、「血氧」或者「體溫」可以查詢您的健康數據，也可以輸入其他的訊息跟我聊天喔！"
+        line_bot_api.push_message(
+            PushMessageRequest(
+                to=user_id,
+                messages=[TextMessage(text=message)]
+            )
+        )
+
 if __name__ == "__main__":
     app.run(port=9002)
