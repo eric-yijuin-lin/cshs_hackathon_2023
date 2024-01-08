@@ -21,6 +21,7 @@ from linebot.v3.webhooks import (
 import utilities
 from health_data_manager import HealthDataManager
 from chatgpt import ChatGPT
+from info_tech import MathGame
 
 app = Flask(__name__)
 line_credential = utilities.read_config('./configs/line-api-credential.json')
@@ -28,6 +29,28 @@ configuration = Configuration(access_token = line_credential['accessToken'])
 handler = WebhookHandler(line_credential['channelSecret'])
 health_manager = HealthDataManager("./configs/health-data-config.json")
 chatgpt = ChatGPT("./configs/chatgpt-credential.json")
+math_game = MathGame("./configs/health-data-config.json")
+
+@app.route("/hello", methods=["GET"])
+def hello():
+    return "Hello"
+
+@app.route("/question", methods=["GET"])
+def get_question():
+    return math_game.get_question()
+
+@app.route("/answer", methods=["GET"])
+def do_answer():
+    question = request.args["q"]
+    answer = request.args["a"]
+    reward = math_game.get_reward(question, answer)
+    return str(reward)
+
+@app.route("/draw", methods=["GET"])
+def draw_card():
+    card = math_game.draw_card()
+    print(card)
+    return card
 
 # https://goattl.tw/cshs/hackathon/health-data?uid=debug-user&hb=120&bo=99&bt=37.5
 # 127.0.0.1:9002/health-data?uid=debug-user&hb=120&bo=98&bt=37.5
