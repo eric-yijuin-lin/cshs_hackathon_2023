@@ -48,8 +48,8 @@ def do_answer():
 
 @app.route("/draw", methods=["GET"])
 def draw_card():
-    card = math_game.draw_card()
-    print(card)
+    user = request.args["u"]
+    card = math_game.draw_card(user)
     return card
 
 # https://goattl.tw/cshs/hackathon/health-data?uid=debug-user&hb=120&bo=99&bt=37.5
