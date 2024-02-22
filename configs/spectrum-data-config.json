@@ -1,0 +1,5 @@
+{
+    "sheetCredentialPath": "./configs/sheet-api-credential.json",
+    "workBook": "2024科展資料庫",
+    "spectrumTab": "光譜數據"
+}

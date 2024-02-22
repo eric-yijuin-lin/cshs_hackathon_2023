@@ -20,6 +20,7 @@ from linebot.v3.webhooks import (
 )
 import utilities
 from health_data_manager import HealthDataManager
+from spectrum_manager import SpectrumDataManager
 from chatgpt import ChatGPT
 from info_tech import MathGame
 
@@ -28,6 +29,7 @@ line_credential = utilities.read_config('./configs/line-api-credential.json')
 configuration = Configuration(access_token = line_credential['accessToken'])
 handler = WebhookHandler(line_credential['channelSecret'])
 health_manager = HealthDataManager("./configs/health-data-config.json")
+spectrum_manager = SpectrumDataManager("./configs/spectrum-data-config.json")
 chatgpt = ChatGPT("./configs/chatgpt-credential.json")
 math_game = MathGame("./configs/health-data-config.json")
 
@@ -76,6 +78,12 @@ def handle_health_data():
                 )
             )
     return 'OK'
+
+@app.route("/spectrum", methods=["GET"])
+def handle_spectrum_readings():
+    spectrum = spectrum_manager.spectrum_from_request(request.args)
+    spectrum_manager.insert_spectrum_record(spectrum)
+    return "OK"
 
 @app.route("/callback", methods=['POST'])
 def callback():

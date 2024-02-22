@@ -22,7 +22,7 @@ class HealthDataManager:
         self.hospitals_sheet = work_book.worksheet(self.config["hospitalTab"])
         self.users = self.user_sheet.get_all_records()
         self.hospitals = self.hospitals_sheet.get_all_records()
-        print(self.hospitals)
+        # print(self.hospitals)
 
     def vital_signs_from_request(self, request_args) -> list:
         # [user_name, heart_beat, blood_oxygen, body_temperature]
