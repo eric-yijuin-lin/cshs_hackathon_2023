@@ -20,16 +20,24 @@ class SpectrumDataManager:
         self.spectrum_sheet = work_book.worksheet(self.config["spectrumTab"])
 
     def spectrum_from_request(self, request_args) -> list:
-        # [ts, v, b, g, y, o, r]
         dt = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
-        timestamp = request_args.get("ts")
-        violet = float(request_args.get("v"))
-        blue = float(request_args.get("b"))
-        green = float(request_args.get("g"))
-        yellow = float(request_args.get("y"))
-        orange = float(request_args.get("o"))
-        red = float(request_args.get("r"))
-        return [dt, timestamp, violet, blue, green, yellow, orange, red]
+        spectrum_text = request_args.get("s")
+        spectrum_list = []
+        for text in spectrum_text.split(";"):
+            if not text:
+                continue
+            values = text.split(",")
+            spectrum_list.append([
+                dt,             # server datetime
+                int(values[0]), # time stamp
+                float(values[1]), # violet
+                float(values[2]), # blue
+                float(values[3]), # green
+                float(values[4]), # yellow
+                float(values[5]), # orange
+                float(values[6])  # red
+            ])
+        return spectrum_list
 
     def insert_spectrum_record(self, spectrum_record: list) -> None:
-        self.spectrum_sheet.append_row(spectrum_record)
+        self.spectrum_sheet.append_rows(spectrum_record)
